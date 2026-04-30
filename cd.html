@@ -1,0 +1,622 @@
+{% extends "base.html" %}
+{% block title %}Model Validation{% endblock %}
+{% block page_title %}Model Validation{% endblock %}
+{% block content %}
+
+<!-- SIMPLIFIED KPI ROW -->
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px">
+  <div class="kpi-card blue"
+    style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:18px;">
+    <div class="kpi-label"
+      style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">
+      Total Models</div>
+    <div class="kpi-value" id="kpiTotal" style="font-size:26px; font-weight:800; color:var(--text);">—</div>
+    <div class="kpi-sub" style="font-size:11px; font-weight:600; color:var(--text-dim); margin-top:2px;">Under
+      validation</div>
+  </div>
+  <div class="kpi-card green"
+    style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:18px;">
+    <div class="kpi-label"
+      style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">
+      Completed</div>
+    <div class="kpi-value" id="kpiCompleted" style="font-size:26px; font-weight:800; color:var(--text);">—</div>
+    <div class="kpi-sub" style="font-size:11px; font-weight:600; color:var(--text-dim); margin-top:2px;">Validation
+      complete</div>
+  </div>
+  <div class="kpi-card red"
+    style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:18px;">
+    <div class="kpi-label"
+      style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">
+      Total Findings</div>
+    <div class="kpi-value" id="kpiFindings" style="font-size:26px; font-weight:800; color:var(--text);">—</div>
+    <div class="kpi-sub" style="font-size:11px; font-weight:600; color:var(--text-dim); margin-top:2px;">Across all
+      models</div>
+  </div>
+  <div class="kpi-card"
+    style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:18px;">
+    <div class="kpi-label"
+      style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Not
+      Started</div>
+    <div class="kpi-value" id="kpiNotStarted" style="font-size:26px; font-weight:800; color:var(--text);">—</div>
+    <div class="kpi-sub" style="font-size:11px; font-weight:600; color:var(--text-dim); margin-top:2px;">Models not
+      begun</div>
+  </div>
+  <div class="kpi-card amber"
+    style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:18px;">
+    <div class="kpi-label"
+      style="font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">In
+      Progress</div>
+    <div class="kpi-value" id="kpiInProgress" style="font-size:26px; font-weight:800; color:var(--text);">—</div>
+    <div class="kpi-sub" style="font-size:11px; font-weight:600; color:var(--text-dim); margin-top:2px;">Active
+      validation</div>
+  </div>
+</div>
+
+<!-- SUB TABS -->
+<div class="sub-tabs" style="display:flex; gap:8px; margin-bottom:20px;">
+  <button class="sub-tab active" id="tabHome" onclick="switchTab('home')"
+    style="padding:8px 16px; border:1px solid var(--border); background:transparent; color:var(--text-sub); border-radius:6px; font-size:11px; font-weight:800; cursor:pointer;">Home</button>
+  <button class="sub-tab" id="tabProgress" onclick="switchTab('progress')"
+    style="padding:8px 16px; border:1px solid var(--border); background:transparent; color:var(--text-sub); border-radius:6px; font-size:11px; font-weight:800; cursor:pointer;">Progress</button>
+  <button class="sub-tab" id="tabFindings" onclick="switchTab('findings')"
+    style="padding:8px 16px; border:1px solid var(--border); background:transparent; color:var(--text-sub); border-radius:6px; font-size:11px; font-weight:800; cursor:pointer;">Findings</button>
+  <button class="sub-tab" id="tabTimeline" onclick="switchTab('timeline')"
+    style="padding:8px 16px; border:1px solid var(--border); background:transparent; color:var(--text-sub); border-radius:6px; font-size:11px; font-weight:800; cursor:pointer;">Timeline</button>
+</div>
+<style>
+  .sub-tab.active {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-color: var(--accent) !important;
+  }
+</style>
+
+<!-- HOME: Matrix -->
+<div id="viewHome">
+  <div class="chart-container" style="padding:0;overflow:hidden">
+    <div
+      style="padding:14px 18px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div class="chart-title" style="margin-bottom:0">Validation Records</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select class="filter-select" id="modelFilter" onchange="onModelFilter()"
+          style="font-size:11px;min-width:220px;max-width:320px">
+          <option value="">🏦 All Models</option>
+        </select>
+        <select class="filter-select" id="matrixRiskFilter" onchange="filterMatrix()" style="font-size:11px">
+          <option value="">All Risk Categories</option>
+        </select>
+        <button id="addVRBtn"
+          style="display:none;background:rgba(99,179,237,.15);color:#63b3ed;border:1px solid rgba(99,179,237,.3);padding:6px 13px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600"
+          onclick="openAddVR()">+ Add Record</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto; width:100%; will-change: transform; transform: translateZ(0);">
+      <table id="matrixTable" style="width:100%;border-collapse:collapse;font-size:11px;min-width:800px">
+        <thead>
+          <tr style="position:sticky;top:0;z-index:10">
+            <th
+              style="background:#f1f5f9;min-width:250px;position:sticky;left:0;z-index:11;padding:9px 14px;text-align:left;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text);border-bottom:1px solid var(--border)">
+              Validation Hierarchy</th>
+            <th
+              style="background:#f1f5f9;min-width:130px;padding:9px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#000000;border-bottom:1px solid var(--border)">
+              Status</th>
+            <th
+              style="background:#f1f5f9;min-width:120px;white-space:nowrap;padding:9px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#000000;border-bottom:1px solid var(--border)">
+              Avg Completion%</th>
+            <th
+              style="background:#f1f5f9;min-width:100px;white-space:nowrap;padding:9px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#000000;border-bottom:1px solid var(--border)">
+              No. of Findings</th>
+            <th
+              style="background:#f1f5f9;min-width:100px;white-space:nowrap;padding:9px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#000000;border-bottom:1px solid var(--border)">
+              Start Date</th>
+            <th
+              style="background:#f1f5f9;min-width:100px;white-space:nowrap;padding:9px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#000000;border-bottom:1px solid var(--border)">
+              End Date</th>
+            <th
+              style="background:#f1f5f9;min-width:160px;white-space:nowrap;padding:9px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#000000;border-bottom:1px solid var(--border)">
+              Validator Name</th>
+          </tr>
+        </thead>
+        <tbody id="matrixBody">
+          <tr>
+            <td colspan="7" class="loading">Loading…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- PROGRESS -->
+<div id="viewProgress" style="display:none">
+  <div class="grid-3">
+    <div class="chart-container" style="height:300px">
+      <div class="chart-title">Completion Rate by Validation Component</div>
+      <canvas id="compChart"></canvas>
+    </div>
+    <div class="chart-container" style="height:300px">
+      <div class="chart-title">Completion by Risk Category</div>
+      <canvas id="riskChart"></canvas>
+    </div>
+    <div class="chart-container" style="height:300px">
+      <div class="chart-title">Status Distribution</div>
+      <canvas id="statusChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- FINDINGS -->
+<div id="viewFindings" style="display:none">
+  <div class="chart-container" style="height:400px">
+    <div class="chart-title">No. of Findings by Risk Category (Stacked by Status)</div>
+    <canvas id="findingsChart"></canvas>
+  </div>
+</div>
+
+<!-- TIMELINE -->
+<div id="viewTimeline" style="display:none">
+  <div class="chart-container"
+    style="padding:20px; background:var(--surface); border:1px solid var(--border); border-radius:8px;">
+    <div
+      style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+      <div class="chart-title"
+        style="margin:0; font-size:14px; font-weight:800; color:var(--text-main); border-bottom:none; padding:0;">
+        Validation Schedule</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <select class="filter-select" id="tlModelFilter" onchange="filterTimeline()"
+          style="font-size:11px;min-width:200px">
+          <option value="">All Models</option>
+        </select>
+        <select class="filter-select" id="tlStatusFilter" onchange="filterTimeline()"
+          style="font-size:11px;min-width:140px">
+          <option value="">All Statuses</option>
+        </select>
+        <button class="btn btn-outline" style="font-size:11px;padding:6px 12px"
+          onclick="clearTlFilters()">Clear</button>
+      </div>
+    </div>
+    <div id="tlLegend" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <div id="ganttContainer"></div>
+  </div>
+</div>
+
+<script>
+  let matrixData = [], chartInstances = {};
+  const COLORS = ['#512177', '#f36d21', '#14b8a6', '#f59e0b', '#22c55e', '#7c3aed'];
+  const STATUS_COLORS = { 'Completed': '#22c55e', 'In Progress': '#3b82f6', 'Not Started': '#6b7280' };
+
+  function destroyCharts() { Object.values(chartInstances).forEach(c => { try { c.destroy() } catch (e) { } }); chartInstances = {}; }
+
+  async function loadKPIs() {
+    try {
+      const r = await fetch('/api/mv/kpis'); const d = await r.json();
+      document.getElementById('kpiTotal').textContent = d.total_models ?? '—';
+      document.getElementById('kpiCompleted').textContent = d.total_models > 0 ? (d.completed ?? '—') : '—';
+      document.getElementById('kpiFindings').textContent = d.total_models > 0 ? d.total_findings.toLocaleString() : '—';
+      document.getElementById('kpiNotStarted').textContent = d.total_models > 0 ? d.not_started : '—';
+      document.getElementById('kpiInProgress').textContent = d.total_models > 0 ? d.in_progress : '—';
+    } catch (e) { console.error('KPI load error', e); }
+  }
+
+  async function loadModelSlicer() {
+    try {
+      const r = await fetch('/api/mv/models'); const models = await r.json();
+      const sel = document.getElementById('modelFilter');
+      models.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o); });
+    } catch (e) { console.error('Model slicer error', e); }
+  }
+
+  async function onModelFilter() {
+    const model = document.getElementById('modelFilter').value;
+    document.getElementById('matrixRiskFilter').value = '';
+    // Reset risk filter options
+    const riskSel = document.getElementById('matrixRiskFilter');
+    while (riskSel.options.length > 1) riskSel.remove(1);
+
+    const url = model ? `/api/mv/matrix_by_model?model=${encodeURIComponent(model)}` : '/api/mv/matrix_by_model';
+    const r = await fetch(url); matrixData = await r.json();
+    if (!matrixData.length) {
+      document.getElementById('matrixBody').innerHTML =
+        '<tr><td colspan="7" style="text-align:center;padding:60px 20px;color:#000000;font-size:13px">' +
+        '📂 No data available.</td></tr>';
+      return;
+    }
+    const risks = [...new Set(matrixData.map(d => d.Risk_Category))].sort();
+    risks.forEach(rk => { const o = document.createElement('option'); o.value = rk; o.textContent = rk; riskSel.appendChild(o); });
+    renderMatrix(matrixData);
+  }
+
+  async function loadMatrix() {
+    try {
+      const r = await fetch('/api/mv/matrix_by_model'); matrixData = await r.json();
+      if (!matrixData.length) {
+        document.getElementById('matrixBody').innerHTML =
+          '<tr><td colspan="7" style="text-align:center;padding:60px 20px;color:#000000;font-size:13px">' +
+          '📂 No data available. Please ask your Admin to upload data via the <strong style="color:var(--accent)">Upload Data</strong> page.</td></tr>';
+        return;
+      }
+      const risks = [...new Set(matrixData.map(d => d.Risk_Category))].sort();
+      const sel = document.getElementById('matrixRiskFilter');
+      risks.forEach(rk => { const o = document.createElement('option'); o.value = rk; o.textContent = rk; sel.appendChild(o); });
+      renderMatrix(matrixData);
+    } catch (e) {
+      console.error('Matrix load error', e);
+      document.getElementById('matrixBody').innerHTML = '<tr><td colspan="7" class="loading">Error loading data</td></tr>';
+    }
+  }
+
+  function filterMatrix() {
+    const rk = document.getElementById('matrixRiskFilter').value;
+    renderMatrix(rk ? matrixData.filter(d => d.Risk_Category === rk) : matrixData);
+  }
+
+  function statusBadge(s, comp, ip, ns) {
+    const cls = s === 'Completed' ? 'status-validated' : s === 'In Progress' ? 'status-progress' : 'status-notstarted';
+    const tip = `Completed:${comp} | In Progress:${ip} | Not Started:${ns}`;
+    return `<span class="status-badge ${cls}" title="${tip}">${s}</span>`;
+  }
+
+  function pctBar(v) {
+    const pct = v || 0;
+    const col = pct >= 80 ? '#22c55e' : pct >= 40 ? '#f59e0b' : '#ef4444';
+    return `<div style="display:flex;align-items:center;gap:6px">
+    <div style="flex:1;background:rgba(0,0,0,.08);border-radius:3px;height:6px;min-width:60px">
+      <div style="width:${Math.min(pct, 100)}%;height:6px;background:${col};border-radius:3px"></div>
+    </div>
+    <span style="font-size:11px;font-family:DM Mono;color:${col};min-width:32px">${pct}%</span>
+  </div>`;
+  }
+
+  function renderMatrix(data) {
+    const body = document.getElementById('matrixBody');
+    body.innerHTML = '';
+    // Group: Risk → Component → rows
+    const byRisk = {};
+    data.forEach(r => {
+      const rk = r.Risk_Category;
+      if (!byRisk[rk]) byRisk[rk] = {};
+      const vc = r.Validation_Component;
+      if (!byRisk[rk][vc]) byRisk[rk][vc] = [];
+      byRisk[rk][vc].push(r);
+    });
+
+    Object.entries(byRisk).forEach(([rk, comps]) => {
+      // Risk Category row
+      const allRows = Object.values(comps).flat();
+      const rkComp = allRows.reduce((s, r) => s + r.comp, 0), rkIp = allRows.reduce((s, r) => s + r.ip, 0), rkNs = allRows.reduce((s, r) => s + r.ns, 0);
+      const rkAvg = Math.round(allRows.reduce((s, r) => s + (r.avg_comp || 0), 0) / allRows.length);
+      const rkFindings = allRows.reduce((s, r) => s + (r.total_findings || 0), 0);
+      let rkDom = rkComp >= rkIp && rkComp >= rkNs ? 'Completed' : rkIp >= rkNs ? 'In Progress' : 'Not Started';
+      const rkTr = document.createElement('tr');
+      rkTr.innerHTML = `
+      <td colspan="7" style="padding:10px 14px;font-size:11px;font-weight:800;color:#ffffff;position:sticky;left:0;background:#512177;border-top:1px solid var(--border)">
+        ${rk}
+        <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);margin-left:10px">Avg: ${rkAvg}% | Findings: ${rkFindings.toLocaleString()}</span>
+      </td>`;
+      body.appendChild(rkTr);
+
+      Object.entries(comps).forEach(([vc, rows]) => {
+        const vcComp = rows.reduce((s, r) => s + r.comp, 0), vcIp = rows.reduce((s, r) => s + r.ip, 0), vcNs = rows.reduce((s, r) => s + r.ns, 0);
+        const vcAvg = rows.reduce((s, r) => s + (r.avg_comp || 0), 0) / rows.length;
+        const vcFindings = rows.reduce((s, r) => s + (r.total_findings || 0), 0);
+        let vcDom = vcComp >= vcIp && vcComp >= vcNs ? 'Completed' : vcIp >= vcNs ? 'In Progress' : 'Not Started';
+        const vcTr = document.createElement('tr');
+        vcTr.style.background = "rgba(109, 40, 217, 0.08)";
+        vcTr.innerHTML = `
+        <td style="padding:7px 14px 7px 24px;font-size:11px;font-weight:800;color:#512177;position:sticky;left:0;background:rgba(81, 33, 119, 0.08)">${vc}</td>
+        <td>${statusBadge(vcDom, vcComp, vcIp, vcNs)}</td>
+        <td>${pctBar(Math.round(vcAvg))}</td>
+        <td style="font-weight:700;color:#ef4444;text-align:center">${vcFindings}</td>
+        <td></td><td></td><td></td>`;
+        body.appendChild(vcTr);
+
+        rows.forEach(row => {
+          const tr = document.createElement('tr');
+          const fmtD = (s) => {
+            if (!s || s === 'None' || s === 'nan') return '—';
+            if (/^\d{4,5}$/.test(String(s).trim())) {
+              const d = new Date((parseInt(s) - 25569) * 86400000);
+              return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+            }
+            return String(s).split('T')[0];
+          };
+          tr.innerHTML = `
+          <td style="padding:6px 14px 6px 40px;font-size:11px;color:var(--text);position:sticky;left:0;background:var(--surface)">${row.Sub_Step || ''}</td>
+          <td>${statusBadge(row.dominant_status, row.comp, row.ip, row.ns)}</td>
+          <td>${pctBar(row.avg_comp)}</td>
+          <td style="font-family:DM Mono;text-align:center;color:${(row.total_findings || 0) > 0 ? '#f87171' : 'var(--text-muted)'}">${row.total_findings || 0}</td>
+          <td style="font-size:10px;color:#000000;text-align:center">${fmtD(row.start_date)}</td>
+          <td style="font-size:10px;color:#000000;text-align:center">${fmtD(row.end_date)}</td>
+          <td style="font-size:10px;color:#000000" title="${row.validators || ''}">${(row.validators || '—').substring(0, 30)}${(row.validators || '').length > 30 ? '…' : ''}</td>`;
+          body.appendChild(tr);
+        });
+      });
+    });
+  }
+
+  async function loadProgress() {
+    const r = await fetch('/api/mv/progress'); const d = await r.json();
+    if (!d.by_component || !d.by_component.length) {
+      document.getElementById('viewProgress').innerHTML = '<div style="text-align:center;padding:80px 20px;color:#000000;font-size:13px">📂 No data available. Please ask your Admin to upload data via the <strong style="color:var(--accent)">Upload Data</strong> page.</div>';
+      return;
+    }
+    chartInstances.comp = new Chart(document.getElementById('compChart'), {
+      type: 'bar', data: {
+        labels: d.by_component.map(x => x.component.replace('Validation', 'Val.').replace('Monitoring', 'Mon.')),
+        datasets: [{ label: 'Avg Completion %', data: d.by_component.map(x => x.pct), backgroundColor: COLORS, borderRadius: 5 }]
+      },
+      options: {
+        animation: false,
+        plugins: { legend: { display: false } }, scales: {
+          x: { grid: { color: 'rgba(0,0,0,.04)' }, ticks: { color: '#000000', font: { size: 9, weight: '800' } } },
+          y: { grid: { color: 'rgba(0,0,0,.04)' }, ticks: { color: '#000000', font: { weight: '800' } }, beginAtZero: true, max: 100, title: { display: true, text: 'Avg Completion %', color: '#000000', font: { size: 9, weight: '800' } } }
+        }
+      }
+    });
+    chartInstances.risk = new Chart(document.getElementById('riskChart'), {
+      type: 'bar', data: {
+        labels: d.by_risk.map(x => x.risk),
+        datasets: [{ label: 'Avg Completion %', data: d.by_risk.map(x => x.pct), backgroundColor: COLORS, borderRadius: 5 }]
+      },
+      options: {
+        animation: false,
+        plugins: { legend: { display: false } }, scales: {
+          x: { grid: { color: 'rgba(0,0,0,.04)' }, ticks: { color: '#000000', font: { size: 9, weight: '800' }, maxRotation: 30 } },
+          y: { grid: { color: 'rgba(0,0,0,.04)' }, ticks: { color: '#000000', font: { weight: '800' } }, beginAtZero: true, max: 100 }
+        }
+      }
+    });
+    chartInstances.status = new Chart(document.getElementById('statusChart'), {
+      type: 'doughnut', data: {
+        labels: d.status_dist.map(x => x.status),
+        datasets: [{ data: d.status_dist.map(x => x.count), backgroundColor: d.status_dist.map(x => STATUS_COLORS[x.status] || '#6b7280') }]
+      },
+      options: { animation: false, plugins: { legend: { position: 'bottom', labels: { color: '#000000', font: { size: 10, weight: '800' }, padding: 10 } } } }
+    });
+  }
+
+  async function loadFindings() {
+    const r = await fetch('/api/mv/findings'); const d = await r.json();
+    if (!d || !d.length) {
+      document.getElementById('viewFindings').innerHTML = '<div style="text-align:center;padding:80px 20px;color:#000000;font-size:13px">📂 No data available. Please ask your Admin to upload data via the <strong style="color:var(--accent)">Upload Data</strong> page.</div>';
+      return;
+    }
+    chartInstances.findings = new Chart(document.getElementById('findingsChart'), {
+      type: 'bar',
+      data: {
+        labels: d.map(x => x.Risk_Category),
+        datasets: [
+          { label: 'Completed', data: d.map(x => x.comp_findings), backgroundColor: 'rgba(34,197,94,.75)', borderRadius: 3, stack: 's1' },
+          { label: 'In Progress', data: d.map(x => x.ip_findings), backgroundColor: 'rgba(59,130,246,.75)', borderRadius: 3, stack: 's1' },
+          { label: 'Not Started', data: d.map(x => x.ns_findings), backgroundColor: 'rgba(107,114,128,.75)', borderRadius: 3, stack: 's1' },
+        ]
+      },
+      options: {
+        animation: false,
+        plugins: { legend: { labels: { color: '#000000', font: { weight: '800' } } } },
+        scales: {
+          x: {
+            grid: { color: 'rgba(0,0,0,.04)' }, ticks: { color: '#000000', font: { weight: '800' } }, stacked: true,
+            title: { display: true, text: 'Risk Category', color: '#000000', font: { size: 10, weight: '800' } }
+          },
+          y: {
+            grid: { color: 'rgba(0,0,0,.04)' }, ticks: { color: '#000000', font: { weight: '800' } }, stacked: true, beginAtZero: true,
+            title: { display: true, text: 'No. of Findings', color: '#000000', font: { size: 10, weight: '800' } }
+          }
+        }
+      }
+    });
+  }
+
+  let tlAllData = [];
+
+  function clearTlFilters() {
+    document.getElementById('tlModelFilter').value = '';
+    document.getElementById('tlStatusFilter').value = '';
+    renderTimeline(tlAllData);
+  }
+
+  function filterTimeline() {
+    const model = document.getElementById('tlModelFilter').value;
+    const status = document.getElementById('tlStatusFilter').value;
+    renderTimeline(tlAllData.filter(d =>
+      (!model || d.Model_Name === model) &&
+      (!status || d.Status === status)
+    ));
+  }
+
+  async function loadTimeline() {
+    const r = await fetch('/api/mv/timeline'); tlAllData = await r.json();
+
+    // Populate model slicer
+    const modelSel = document.getElementById('tlModelFilter');
+    while (modelSel.options.length > 1) modelSel.remove(1);
+    [...new Set(tlAllData.map(d => d.Model_Name).filter(Boolean))].sort().forEach(m => {
+      const o = document.createElement('option'); o.value = m; o.textContent = m; modelSel.appendChild(o);
+    });
+
+    // Populate status slicer
+    const statusSel = document.getElementById('tlStatusFilter');
+    while (statusSel.options.length > 1) statusSel.remove(1);
+    [...new Set(tlAllData.map(d => d.Status).filter(Boolean))].sort().forEach(s => {
+      const o = document.createElement('option'); o.value = s; o.textContent = s; statusSel.appendChild(o);
+    });
+
+    // Legend
+    const legend = document.getElementById('tlLegend');
+    legend.innerHTML = '';
+    Object.entries(STATUS_COLORS).forEach(([s, c]) => {
+      legend.innerHTML += `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#000000"><div style="width:10px;height:10px;border-radius:2px;background:${c}"></div>${s}</div>`;
+    });
+
+    renderTimeline(tlAllData);
+  }
+
+  function renderTimeline(data) {
+    const container = document.getElementById('ganttContainer');
+
+    function parseDate(s) {
+      if (!s || s === 'None' || s === '' || s === 'nan') return null;
+      if (/^\d{4,5}$/.test(String(s).trim())) return new Date((parseInt(s) - 25569) * 86400000);
+      const clean = String(s).trim().split('T')[0].replace(' ', '');
+      const d = new Date(clean + 'T00:00:00'); return isNaN(d) ? null : d;
+    }
+    function fmtDate(d) { return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Ongoing'; }
+
+    const parsed = data.map(d => ({ ...d, sd: parseDate(d.Start_Date), ed: parseDate(d.End_Date) }))
+      .filter(d => d.sd && !isNaN(d.sd)).sort((a, b) => a.sd - b.sd);
+
+    if (!parsed.length) {
+      container.innerHTML = '<div style="text-align:center;padding:60px 20px;color:rgba(0,0,0,0.3);font-size:13px;background:rgba(0,0,0,0.02);border-radius:12px;border:1px dashed rgba(0,0,0,0.1)">📂 No timeline data available for selected models.</div>';
+      return;
+    }
+
+    const minD = new Date(Math.min(...parsed.map(d => d.sd)));
+    const maxD = new Date(Math.max(...[...parsed.filter(d => d.ed).map(d => d.ed), ...parsed.map(d => d.sd)]));
+    const total = Math.max(maxD - minD, 1);
+
+    const labelW = 240;
+
+    container.innerHTML = `<div style="overflow-x:auto; will-change: transform;"><div style="min-width:650px">` +
+      parsed.map((row, i) => {
+        const left = ((row.sd - minD) / total * 100).toFixed(2);
+        const endD = row.ed || new Date(row.sd.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const width = Math.max(((endD - row.sd) / total * 100), 1).toFixed(2);
+        const color = STATUS_COLORS[row.Status] || '#6b7280';
+        return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.03); transform: translateZ(0);">
+        <div style="width:${labelW}px;flex-shrink:0;">
+          <div style="font-size:11.5px;font-weight:800;color:#000000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${row.Model_Name}">${row.Model_Name}</div>
+          <div style="font-size:10px;color:rgba(0,0,0,0.4);font-weight:500;margin-top:2px">${row.Risk_Category || 'General'} · ${fmtDate(row.sd)}</div>
+        </div>
+        <div style="flex:1;background:rgba(0,0,0,0.03);border-radius:6px;height:12px;position:relative">
+          <div style="position:absolute;left:${left}%;width:${width}%;height:100%;background:${color};opacity:0.75;border-radius:6px;cursor:pointer;"
+            title="${row.Model_Name}&#10;${fmtDate(row.sd)} → ${fmtDate(row.ed)}&#10;Status: ${row.Status}">
+          </div>
+        </div>
+        <div style="width:100px;flex-shrink:0;font-size:9.5px;font-weight:700;padding:4px 0;border-radius:6px;text-align:center;text-transform:uppercase;letter-spacing:0.5px;background:${color}15;color:${color}">${row.Status}</div>
+      </div>`;
+      }).join('') +
+      `<div style="display:flex;margin-top:16px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.08);">
+      <div style="width:${labelW}px"></div>
+      <div style="flex:1;display:flex;justify-content:space-between;font-size:10px;font-weight:800;color:rgba(0,0,0,0.3);text-transform:uppercase;">
+        <span>${fmtDate(minD)}</span><span>${fmtDate(maxD)}</span>
+      </div>
+      <div style="width:100px"></div>
+    </div></div></div>`;
+  }
+
+  async function switchTab(tab) {
+    ['home', 'progress', 'findings', 'timeline'].forEach(t => {
+      document.getElementById('view' + t[0].toUpperCase() + t.slice(1)).style.display = t === tab ? 'block' : 'none';
+      document.getElementById('tab' + t[0].toUpperCase() + t.slice(1)).className = 'sub-tab' + (t === tab ? ' active' : '');
+    });
+    destroyCharts();
+    if (tab === 'progress') await loadProgress();
+    if (tab === 'findings') await loadFindings();
+    if (tab === 'timeline') await loadTimeline();
+  }
+
+  loadKPIs();
+  loadModelSlicer().then(() => {
+    const params = new URLSearchParams(window.location.search);
+    let preModel = params.get('model');
+    if (preModel) {
+      preModel = preModel.trim();
+      const sel = document.getElementById('modelFilter');
+      let found = false;
+      for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value.trim() === preModel) {
+          sel.selectedIndex = i;
+          found = true;
+          break;
+        }
+      }
+      if (found) {
+        onModelFilter();
+      } else {
+        loadMatrix();
+      }
+    } else {
+      loadMatrix();
+    }
+  });
+
+  // ── CRUD ──────────────────────────────────────────────────────────────────────
+  fetch('/api/me').then(r => r.json()).then(d => { if (d.role === 'admin') document.getElementById('addVRBtn').style.display = ''; });
+
+  function openAddVR() { document.getElementById('addVRModal').style.display = 'flex'; }
+  function closeAddVR() { document.getElementById('addVRModal').style.display = 'none'; }
+  async function submitVR() {
+    const flds = ['Model_ID', 'Model_Name', 'Risk_Category', 'Validation_Component', 'Sub_Step', 'Status', 'Completion_pct', 'No_of_Findings', 'Validator_Name', 'Start_Date', 'End_Date'];
+    const data = {}; flds.forEach(f => { const v = document.getElementById('vr_' + f)?.value?.trim(); if (v) data[f] = v; });
+    const r = await fetch('/api/mv/row', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const res = await r.json(); if (res.success) { closeAddVR(); loadMatrix(); loadKPIs(); } else alert(res.error || 'Error');
+  }
+
+</script>
+
+<!-- Add Validation Record Modal -->
+<div id="addVRModal"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;align-items:center;justify-content:center">
+  <div
+    style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:24px;width:560px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="margin:0;font-size:15px">Add Validation Record</h3>
+      <button onclick="closeAddVR()"
+        style="background:none;border:none;color:#000000;cursor:pointer;font-size:18px">&#x2715;</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label style="font-size:11px;color:#000000;display:block;margin-bottom:4px">Model ID</label><input
+          id="vr_Model_ID"
+          style="width:100%;background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:#000000;font-size:12px;box-sizing:border-box">
+      </div>
+      <div><label style="font-size:11px;color:#000000;display:block;margin-bottom:4px">Model
+          Name</label><input id="vr_Model_Name"
+          style="width:100%;background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:#000000;font-size:12px;box-sizing:border-box">
+      </div>
+      <div><label style="font-size:11px;color:#000000;display:block;margin-bottom:4px">Risk
+          Category</label><input id="vr_Risk_Category"
+          style="width:100%;background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:#000000;font-size:12px;box-sizing:border-box">
+      </div>
+      <div><label style="font-size:11px;color:#000000;display:block;margin-bottom:4px">Validation
+          Component</label><input id="vr_Validation_Component"
+          style="width:100%;background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:#000000;font-size:12px;box-sizing:border-box">
+      </div>
+      <div><label style="font-size:11px;color:#000000;display:block;margin-bottom:4px">Sub Step</label><input
+          id="vr_Sub_Step"
+          style="width:100%;background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:#000000;font-size:12px;box-sizing:border-box">
+      </div>
+      <div><label style="font-size:11px;color:#000000;display:block;margin-bottom:4px">Status</label><select
+          id="vr_Status" class="filter-select" style="width:100%">
+          <option>Not Started</option>
+          <option>In Progress</option>
+          <option>Completed</option>
+        </select></div>
+      <div><label style="font-size:11px;color:#000000;display:block;margin-bottom:4px">Completion
+          %</label><input id="vr_Completion_pct" placeholder="e.g. 75%"
+          style="width:100%;background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:#000000;font-size:12px;box-sizing:border-box">
+      </div>
+      <div><label style="font-size:11px;color:#000000;display:block;margin-bottom:4px">No. of
+          Findings</label><input id="vr_No_of_Findings" placeholder="0"
+          style="width:100%;background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:#000000;font-size:12px;box-sizing:border-box">
+      </div>
+      <div><label style="font-size:11px;color:#000000;display:block;margin-bottom:4px">Validator
+          Name</label><input id="vr_Validator_Name"
+          style="width:100%;background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:#000000;font-size:12px;box-sizing:border-box">
+      </div>
+      <div><label style="font-size:11px;color:#000000;display:block;margin-bottom:4px">Start
+          Date</label><input id="vr_Start_Date" type="date"
+          style="width:100%;background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:#000000;font-size:12px;box-sizing:border-box">
+      </div>
+      <div><label style="font-size:11px;color:#000000;display:block;margin-bottom:4px">End Date</label><input
+          id="vr_End_Date" type="date"
+          style="width:100%;background:#ffffff;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:#000000;font-size:12px;box-sizing:border-box">
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeAddVR()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitVR()">Add Record</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
